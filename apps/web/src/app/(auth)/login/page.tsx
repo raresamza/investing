@@ -74,12 +74,6 @@ export default function LoginPage() {
                                 <div className="text-sm font-medium text-red-500">{formik.errors.email}</div>
                             ) : null}
                         </div>
-
-
-
-
-                        <div />
-
                         <div className="space-y-2">
                             <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
                             <Input

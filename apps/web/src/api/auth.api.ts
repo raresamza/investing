@@ -24,3 +24,9 @@ export async function verifyEmail(token: string) {
     console.log(response.data);
     return response.data;
 }
+
+export async function resendVerificationEmail(email: string) {
+    const response = await axiosInstance.post("/auth/resend-verification", { email });
+    console.log(response.data);
+    return response.data;
+}

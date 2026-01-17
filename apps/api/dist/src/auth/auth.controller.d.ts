@@ -8,12 +8,15 @@ export declare class AuthController {
         message: string;
     }>;
     login(dto: LoginDto): Promise<{
-        id: string;
         email: string;
         name: string;
+        id: string;
         authState: import("@prisma/client").$Enums.AuthState;
     }>;
     verifyEmail(token: string): Promise<{
+        message: string;
+    }>;
+    resendVerification(email: string): Promise<{
         message: string;
     }>;
 }

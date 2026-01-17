@@ -1,0 +1,23 @@
+
+> api@0.0.1 build
+> nest build
+
+[96msrc/auth/auth.service.ts[0m:[93m12[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'user' does not exist on type 'PrismaService'.
+
+[7m12[0m     const existing = await this.prisma.user.findUnique({
+[7m  [0m [91m                                       ~~~~[0m
+[96msrc/auth/auth.service.ts[0m:[93m22[0m:[93m36[0m - [91merror[0m[90m TS2339: [0mProperty 'user' does not exist on type 'PrismaService'.
+
+[7m22[0m     const user = await this.prisma.user.create({
+[7m  [0m [91m                                   ~~~~[0m
+[96msrc/prisma/prisma.service.ts[0m:[93m3[0m:[93m30[0m - [91merror[0m[90m TS2307: [0mCannot find module '@prisma/client' or its corresponding type declarations.
+
+[7m3[0m import { PrismaClient } from '@prisma/client';
+[7m [0m [91m                             ~~~~~~~~~~~~~~~~[0m
+[96msrc/prisma/prisma.service.ts[0m:[93m8[0m:[93m16[0m - [91merror[0m[90m TS2339: [0mProperty '$connect' does not exist on type 'PrismaService'.
+
+[7m8[0m     await this.$connect();
+[7m [0m [91m               ~~~~~~~~[0m
+
+Found 4 error(s).
+

@@ -141,4 +141,44 @@ export class AuthService {
     const hashedToken = createHash("sha256").update(rawToken).digest("hex");
     return { rawToken, hashedToken }
   }
+
+  async resendVerificationEmail(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email }
+    })
+
+    if (!user) {
+      return {
+        message: "If an account with this email exists, you will receive a verification email."
+      }
+    }
+    if (user.isEmailVerified || user.authState !== AuthState.PENDING_VERIFY) {
+      return {
+        message: "Email already verified"
+      }
+    }
+    const { rawToken, hashedToken } = this.generateVerificationToken();
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationToken: hashedToken,
+        verificationTokenExpiresAt: new Date(Date.now() * 60 * 60 * 1000)
+      }
+    });
+
+    await this.mailService.sendVerificationEmail(user.email, "Verify your email",
+      `
+        <p>Hi ${user.name},</p>
+        <p>Here is your new verification link:</p>
+        <a href="${process.env.FRONTEND_URL}/verify-email?token=${rawToken}">
+          Verify Email
+        </a>
+        <p>This link expires in 1 hour.</p>
+      `);
+
+    return {
+      message: "Verification email sent successfully"
+    }
+  }
 }

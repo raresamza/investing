@@ -10,9 +10,9 @@ export declare class AuthService {
         message: string;
     }>;
     login(dto: LoginDto): Promise<{
-        id: string;
         email: string;
         name: string;
+        id: string;
         authState: import("@prisma/client").$Enums.AuthState;
     }>;
     verifyEmail(rawToken: string): Promise<{
@@ -22,4 +22,7 @@ export declare class AuthService {
         rawToken: string;
         hashedToken: string;
     };
+    resendVerificationEmail(email: string): Promise<{
+        message: string;
+    }>;
 }

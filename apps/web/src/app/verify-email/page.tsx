@@ -6,7 +6,7 @@ import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { verifyEmail } from "@/api/auth.api"
+import { verifyEmail, resendVerificationEmail } from "@/api/auth.api"
 
 type Status = "idle" | "loading" | "success" | "error"
 
@@ -34,7 +34,6 @@ export default function VerifyEmailPage() {
                 setStatus("success")
                 setMessage(res.message ?? "Email verified successfully.")
 
-                setTimeout(() => router.push("/login?verified=1"), 30000)
             } catch (err: any) {
                 setStatus("error")
                 const apiMsg =
@@ -62,6 +61,14 @@ export default function VerifyEmailPage() {
             : status === "error"
                 ? "The link may be invalid or expired."
                 : "Just a moment while we confirm your token."
+
+    async function handleClick() {
+        try {
+            const res = await resendVerificationEmail("placehodler, need new file in which to get the email");
+        } catch (err: any) {
+            console.log(err);
+        }
+    }
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-50/50 px-4 py-12 sm:px-6 lg:px-8">
@@ -102,13 +109,8 @@ export default function VerifyEmailPage() {
                     </Button>
 
                     <div className="text-center text-sm">
-                        <span className="text-gray-500">Need a new link? </span>
-                        <Link
-                            href="/signup"
-                            className="font-medium text-gray-900 hover:text-gray-700 underline underline-offset-4"
-                        >
-                            Create account
-                        </Link>
+                        {/* <span className="text-gray-500">Need a new link? </span> */}
+                        <Button className="" variant="link" onClick={() => router.push("/resend-email")}> Need a new link? </Button>
                     </div>
                 </CardContent>
             </Card>

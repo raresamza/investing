@@ -9,14 +9,14 @@ import { ZodValidationPipe } from './pipes/zod-validation.pipe';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('signup')
   @UsePipes(new ZodValidationPipe(SignupSchema))
   async signup(@Body() dto: SignupDto) {
-    try{
-    return this.authService.signup(dto);
-    }catch(error){
+    try {
+      return this.authService.signup(dto);
+    } catch (error) {
       console.log(error);
       throw error;
     }
@@ -30,7 +30,12 @@ export class AuthController {
   }
 
   @Get("verify-email")
-  async verifyEmail(@Query("token") token:string) {
+  async verifyEmail(@Query("token") token: string) {
     return this.authService.verifyEmail(token);
+  }
+
+  @Post("resend-verification")
+  async resendVerification(@Body("email") email: string) {
+    return this.authService.resendVerificationEmail(email);
   }
 }

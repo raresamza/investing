@@ -38,6 +38,9 @@ let AuthController = class AuthController {
     async verifyEmail(token) {
         return this.authService.verifyEmail(token);
     }
+    async resendVerification(email) {
+        return this.authService.resendVerificationEmail(email);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -63,6 +66,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "verifyEmail", null);
+__decorate([
+    (0, common_1.Post)("resend-verification"),
+    __param(0, (0, common_1.Body)("email")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resendVerification", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

@@ -40,11 +40,12 @@ export default function SignupPage() {
       setIsLoading(true)
       try {
         console.log("Submitting values:", values)
-        // Simulate API call
         let data = await signup(values)
-        console.log("API Call Mock Success")
-      } catch (error) {
-        console.error("Submission error:", error)
+        console.log("Signup Success")
+      } catch (error: any) {
+        console.error("Signup error status:", error?.response?.status);
+        console.error("Signup error data:", error?.response?.data);
+        console.error("Signup error message:", error?.message);
       } finally {
         setIsLoading(false)
       }
@@ -59,7 +60,7 @@ export default function SignupPage() {
             Create an account
           </CardTitle>
           <CardDescription className="text-gray-500">
-            Enter your email below to create your account
+            Enter your credentials below to create your account
           </CardDescription>
         </CardHeader>
         <CardContent className="pb-8">
@@ -153,7 +154,7 @@ export default function SignupPage() {
           </form>
           <div className="mt-6 text-center text-sm">
             <span className="text-gray-500">Already have an account? </span>
-            <Link href="/auth/login" className="font-medium text-gray-900 hover:text-gray-700 underline underline-offset-4">
+            <Link href="/login" className="font-medium text-gray-900 hover:text-gray-700 underline underline-offset-4">
               Sign in
             </Link>
           </div>

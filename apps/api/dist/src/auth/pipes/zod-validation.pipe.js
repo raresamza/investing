@@ -13,7 +13,7 @@ class ZodValidationPipe {
             return parsedValue;
         }
         catch (error) {
-            throw new common_1.BadRequestException('Validation failed');
+            throw new common_1.BadRequestException(error?.errors ?? error?.message ?? error);
         }
     }
 }

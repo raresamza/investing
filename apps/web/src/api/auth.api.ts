@@ -1,10 +1,26 @@
 import axiosInstance from "./axios-instance";
 
-import { SignUpDto } from "@/types/types";
+import { LoginDto, SignUpDto } from "@/types/types";
 
-export async function signup(dto:SignUpDto) {
+export async function signup(dto: SignUpDto) {
+    const response = await axiosInstance.post("/auth/signup", dto);
+    console.log(response.data);
+    return response.data;
+}
+
+export async function login(dto: LoginDto) {
     console.log(dto);
-    const response = await axiosInstance.post("/signp",dto);
+    const response = await axiosInstance.post("/auth/login", dto);
+    console.log(response.data);
+    return response.data;
+}
+
+export async function verifyEmail(token: string) {
+    const response = await axiosInstance.get("/auth/verify-email", {
+        params: { token },
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" }
+    });
     console.log(response.data);
     return response.data;
 }

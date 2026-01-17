@@ -16,6 +16,7 @@ exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
 const signup_dto_1 = require("./dto/signup.dto");
+const login_dto_1 = require("./dto/login.dto");
 const zod_validation_pipe_1 = require("./pipes/zod-validation.pipe");
 let AuthController = class AuthController {
     authService;
@@ -23,7 +24,19 @@ let AuthController = class AuthController {
         this.authService = authService;
     }
     async signup(dto) {
-        return this.authService.signup(dto);
+        try {
+            return this.authService.signup(dto);
+        }
+        catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+    async login(dto) {
+        return this.authService.login(dto);
+    }
+    async verifyEmail(token) {
+        return this.authService.verifyEmail(token);
     }
 };
 exports.AuthController = AuthController;
@@ -35,6 +48,21 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "signup", null);
+__decorate([
+    (0, common_1.Post)("login"),
+    (0, common_1.UsePipes)(new zod_validation_pipe_1.ZodValidationPipe(login_dto_1.LoginSchema)),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Get)("verify-email"),
+    __param(0, (0, common_1.Query)("token")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "verifyEmail", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

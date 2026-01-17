@@ -46,12 +46,18 @@ exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const bcrypt = __importStar(require("bcrypt"));
+const crypto_1 = require("crypto");
+const mail_service_1 = require("./mail.service");
+const client_1 = require("@prisma/client");
 let AuthService = class AuthService {
     prisma;
-    constructor(prisma) {
+    mailService;
+    constructor(prisma, mailService) {
         this.prisma = prisma;
+        this.mailService = mailService;
     }
     async signup(dto) {
+        const { rawToken, hashedToken } = this.generateVerificationToken();
         const existing = await this.prisma.user.findUnique({
             where: { email: dto.email },
         });
@@ -64,6 +70,8 @@ let AuthService = class AuthService {
                 email: dto.email,
                 name: dto.name,
                 passwordHash,
+                verificationToken: hashedToken,
+                verificationTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
             },
             select: {
                 id: true,
@@ -72,12 +80,87 @@ let AuthService = class AuthService {
                 authState: true,
             },
         });
+        console.log("THIS IS THE LINK THAT SHOULD BE SENT:" + process.env.FRONTEND_URL + " /verify-email");
+        console.log(process.env.FRONTEND_URL);
+        await this.mailService.sendVerificationEmail(user.email, "Verify your email", `
+        <p>Welcome ${user.name},</p>
+        <p>Click the link below to verify your email:</p>
+        <a href="${process.env.FRONTEND_URL}/verify-email?token=${rawToken}">
+          Verify Email
+        </a>
+        <p>This link expires in 1 hour.</p>
+      `);
+        return {
+            message: "Account created successfully, please verify your email"
+        };
+    }
+    async login(dto) {
+        const user = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                authState: true,
+            },
+        });
+        if (!user) {
+            throw new common_1.BadRequestException("Invalid credentials");
+        }
+        const fullUser = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
+        if (user) {
+            const isPasswordValid = await bcrypt.compare(dto.password, fullUser.passwordHash);
+            if (!isPasswordValid)
+                throw new common_1.BadRequestException("Invalid credentials");
+            if (fullUser.authState === client_1.AuthState.LOCKED)
+                throw new common_1.BadRequestException("Account locked");
+            if (fullUser.authState === client_1.AuthState.PENDING_VERIFY)
+                throw new common_1.BadRequestException("Please verify your email");
+        }
+        else {
+            throw new common_1.BadRequestException("Invalid credentials");
+        }
         return user;
+    }
+    async verifyEmail(rawToken) {
+        if (!rawToken || rawToken.length < 20) {
+            throw new common_1.BadRequestException("Invalid token");
+        }
+        const hashedToken = (0, crypto_1.createHash)("sha256").update(rawToken).digest("hex");
+        const user = await this.prisma.user.findFirst({
+            where: {
+                verificationToken: hashedToken,
+                verificationTokenExpiresAt: { gt: new Date() }
+            }
+        });
+        if (!user) {
+            throw new common_1.BadRequestException("Invalid or expired token");
+        }
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+                isEmailVerified: true,
+                authState: client_1.AuthState.AUTHED,
+                verificationToken: null,
+                verificationTokenExpiresAt: null
+            }
+        });
+        return {
+            message: "Email verified successfully"
+        };
+    }
+    generateVerificationToken() {
+        const rawToken = (0, crypto_1.randomBytes)(32).toString("hex");
+        const hashedToken = (0, crypto_1.createHash)("sha256").update(rawToken).digest("hex");
+        return { rawToken, hashedToken };
     }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        mail_service_1.MailService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

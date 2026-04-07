@@ -49,12 +49,15 @@ const bcrypt = __importStar(require("bcrypt"));
 const crypto_1 = require("crypto");
 const mail_service_1 = require("./mail.service");
 const client_1 = require("@prisma/client");
+const jwt_1 = require("@nestjs/jwt");
 let AuthService = class AuthService {
     prisma;
     mailService;
-    constructor(prisma, mailService) {
+    jwt;
+    constructor(prisma, mailService, jwt) {
         this.prisma = prisma;
         this.mailService = mailService;
+        this.jwt = jwt;
     }
     async signup(dto) {
         const { rawToken, hashedToken } = this.generateVerificationToken();
@@ -80,9 +83,7 @@ let AuthService = class AuthService {
                 authState: true,
             },
         });
-        console.log("THIS IS THE LINK THAT SHOULD BE SENT:" + process.env.FRONTEND_URL + " /verify-email");
-        console.log(process.env.FRONTEND_URL);
-        await this.mailService.sendVerificationEmail(user.email, "Verify your email", `
+        await this.mailService.sendVerificationEmail(user.email, 'Verify your email', `
         <p>Welcome ${user.name},</p>
         <p>Click the link below to verify your email:</p>
         <a href="${process.env.FRONTEND_URL}/verify-email?token=${rawToken}">
@@ -91,7 +92,7 @@ let AuthService = class AuthService {
         <p>This link expires in 1 hour.</p>
       `);
         return {
-            message: "Account created successfully, please verify your email"
+            message: 'Account created successfully, please verify your email',
         };
     }
     async login(dto) {
@@ -105,38 +106,51 @@ let AuthService = class AuthService {
             },
         });
         if (!user) {
-            throw new common_1.BadRequestException("Invalid credentials");
+            throw new common_1.BadRequestException('Invalid credentials');
         }
         const fullUser = await this.prisma.user.findUnique({
             where: { email: dto.email },
         });
-        if (user) {
-            const isPasswordValid = await bcrypt.compare(dto.password, fullUser.passwordHash);
-            if (!isPasswordValid)
-                throw new common_1.BadRequestException("Invalid credentials");
-            if (fullUser.authState === client_1.AuthState.LOCKED)
-                throw new common_1.BadRequestException("Account locked");
-            if (fullUser.authState === client_1.AuthState.PENDING_VERIFY)
-                throw new common_1.BadRequestException("Please verify your email");
+        if (!fullUser) {
+            throw new common_1.BadRequestException('Invalid credentials');
         }
-        else {
-            throw new common_1.BadRequestException("Invalid credentials");
-        }
-        return user;
+        const isPasswordValid = await bcrypt.compare(dto.password, fullUser.passwordHash);
+        if (!isPasswordValid)
+            throw new common_1.BadRequestException('Invalid credentials');
+        if (fullUser.authState === client_1.AuthState.LOCKED)
+            throw new common_1.BadRequestException('Account locked');
+        if (fullUser.authState === client_1.AuthState.PENDING_VERIFY)
+            throw new common_1.BadRequestException('Please verify your email');
+        const payload = {
+            sub: user.id,
+            name: user.name,
+            email: user.email,
+        };
+        const accessToken = await this.jwt.signAsync(payload);
+        const { refreshToken, hashedToken } = this.generateRefreshTokenHashed();
+        await this.prisma.session.create({
+            data: {
+                userId: user.id,
+                deviceInfo: 'web(change later now hardcoded)',
+                refreshToken: hashedToken,
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            },
+        });
+        return { accessToken, refreshToken };
     }
     async verifyEmail(rawToken) {
         if (!rawToken || rawToken.length < 20) {
-            throw new common_1.BadRequestException("Invalid token");
+            throw new common_1.BadRequestException('Invalid token');
         }
-        const hashedToken = (0, crypto_1.createHash)("sha256").update(rawToken).digest("hex");
+        const hashedToken = (0, crypto_1.createHash)('sha256').update(rawToken).digest('hex');
         const user = await this.prisma.user.findFirst({
             where: {
                 verificationToken: hashedToken,
-                verificationTokenExpiresAt: { gt: new Date() }
-            }
+                verificationTokenExpiresAt: { gt: new Date() },
+            },
         });
         if (!user) {
-            throw new common_1.BadRequestException("Invalid or expired token");
+            throw new common_1.BadRequestException('Invalid or expired token');
         }
         await this.prisma.user.update({
             where: { id: user.id },
@@ -144,30 +158,66 @@ let AuthService = class AuthService {
                 isEmailVerified: true,
                 authState: client_1.AuthState.AUTHED,
                 verificationToken: null,
-                verificationTokenExpiresAt: null
-            }
+                verificationTokenExpiresAt: null,
+            },
         });
         return {
-            message: "Email verified successfully"
+            message: 'Email verified successfully',
+        };
+    }
+    async refresh(refreshToken) {
+        if (!refreshToken) {
+            throw new common_1.BadRequestException('Refresh token is required');
+        }
+        const refreshTokenHash = (0, crypto_1.createHash)('sha256')
+            .update(refreshToken)
+            .digest('hex');
+        const session = await this.prisma.session.findUnique({
+            where: { refreshToken: refreshTokenHash },
+            include: { user: true },
+        });
+        if (!session) {
+            throw new common_1.BadRequestException('Invalid refresh token');
+        }
+        if (session.expiresAt <= new Date()) {
+            throw new common_1.BadRequestException('Refresh token expired');
+        }
+        const payload = {
+            sub: session.user.id,
+            name: session.user.name,
+            email: session.user.email,
+        };
+        const accessToken = await this.jwt.signAsync(payload);
+        const { refreshToken: newRefreshToken, hashedToken: newRefreshTokenHash, } = this.generateRefreshTokenHashed();
+        await this.prisma.session.update({
+            where: { id: session.id },
+            data: {
+                refreshToken: newRefreshTokenHash,
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            },
+        });
+        return {
+            accessToken,
+            refreshToken: newRefreshToken,
         };
     }
     generateVerificationToken() {
-        const rawToken = (0, crypto_1.randomBytes)(32).toString("hex");
-        const hashedToken = (0, crypto_1.createHash)("sha256").update(rawToken).digest("hex");
+        const rawToken = (0, crypto_1.randomBytes)(32).toString('hex');
+        const hashedToken = (0, crypto_1.createHash)('sha256').update(rawToken).digest('hex');
         return { rawToken, hashedToken };
     }
     async resendVerificationEmail(email) {
         const user = await this.prisma.user.findUnique({
-            where: { email }
+            where: { email },
         });
         if (!user) {
             return {
-                message: "If an account with this email exists, you will receive a verification email."
+                message: 'If an account with this email exists, you will receive a verification email.',
             };
         }
         if (user.isEmailVerified || user.authState !== client_1.AuthState.PENDING_VERIFY) {
             return {
-                message: "Email already verified"
+                message: 'Email already verified',
             };
         }
         const { rawToken, hashedToken } = this.generateVerificationToken();
@@ -175,10 +225,10 @@ let AuthService = class AuthService {
             where: { id: user.id },
             data: {
                 verificationToken: hashedToken,
-                verificationTokenExpiresAt: new Date(Date.now() * 60 * 60 * 1000)
-            }
+                verificationTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+            },
         });
-        await this.mailService.sendVerificationEmail(user.email, "Verify your email", `
+        await this.mailService.sendVerificationEmail(user.email, 'Verify your email', `
         <p>Hi ${user.name},</p>
         <p>Here is your new verification link:</p>
         <a href="${process.env.FRONTEND_URL}/verify-email?token=${rawToken}">
@@ -187,14 +237,20 @@ let AuthService = class AuthService {
         <p>This link expires in 1 hour.</p>
       `);
         return {
-            message: "Verification email sent successfully"
+            message: 'Verification email sent successfully',
         };
+    }
+    generateRefreshTokenHashed() {
+        const refreshToken = (0, crypto_1.randomBytes)(64).toString('hex');
+        const hashedToken = (0, crypto_1.createHash)('sha256').update(refreshToken).digest('hex');
+        return { refreshToken, hashedToken };
     }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        mail_service_1.MailService])
+        mail_service_1.MailService,
+        jwt_1.JwtService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

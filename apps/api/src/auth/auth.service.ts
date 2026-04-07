@@ -45,6 +45,7 @@ export class AuthService {
       },
     });
 
+
     await this.mailService.sendVerificationEmail(
       user.email,
       'Verify your email',
@@ -188,10 +189,8 @@ export class AuthService {
     const accessToken = await this.jwt.signAsync(payload);
 
     // Rotate refresh token (recommended): generate ONCE so raw/hash match
-    const {
-      refreshToken: newRefreshToken,
-      hashedToken: newRefreshTokenHash,
-    } = this.generateRefreshTokenHashed();
+    const { refreshToken: newRefreshToken, hashedToken: newRefreshTokenHash } =
+      this.generateRefreshTokenHashed();
 
     await this.prisma.session.update({
       where: { id: session.id },

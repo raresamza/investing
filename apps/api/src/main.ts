@@ -5,6 +5,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   console.log('DATABASE_URL from process.env:', process.env.DATABASE_URL ? 'DEFINED' : 'UNDEFINED');
   const app = await NestFactory.create(AppModule);
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
+  const cookieParser = require("cookie-parser");
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  app.use(cookieParser());
 
   app.enableCors({
     origin: ["http://localhost:3000"], // Next dev origin

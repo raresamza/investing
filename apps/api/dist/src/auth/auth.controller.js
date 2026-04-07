@@ -32,8 +32,45 @@ let AuthController = class AuthController {
             throw error;
         }
     }
-    async login(dto) {
-        return this.authService.login(dto);
+    async login(dto, res) {
+        const { accessToken, refreshToken } = await this.authService.login(dto);
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 24 * 60 * 60 * 1000
+        });
+        res.cookie('access_token', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 15 * 60 * 1000
+        });
+        return { accessToken };
+    }
+    async refresh(req, res) {
+        const refreshToken = req.cookies['refresh_token'];
+        if (!refreshToken) {
+            throw new common_1.BadRequestException('Refresh token is required');
+        }
+        const { accessToken, refreshToken: newRefreshToken } = await this.authService.refresh(refreshToken);
+        res.cookie('refresh_token', newRefreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 24 * 60 * 60 * 1000
+        });
+        res.cookie('access_token', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 15 * 60 * 1000
+        });
+        return { accessToken };
     }
     async verifyEmail(token) {
         return this.authService.verifyEmail(token);
@@ -55,10 +92,19 @@ __decorate([
     (0, common_1.Post)("login"),
     (0, common_1.UsePipes)(new zod_validation_pipe_1.ZodValidationPipe(login_dto_1.LoginSchema)),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)("refresh"),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "refresh", null);
 __decorate([
     (0, common_1.Get)("verify-email"),
     __param(0, (0, common_1.Query)("token")),

@@ -14,10 +14,14 @@ export type JwtPayload = {
 export class JwtStrategy extends PassportStrategy(Strategy) {
     constructor(config: ConfigService) {
         super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest: ExtractJwt.fromExtractors([
+                (request: any) => {
+                    return request?.cookies?.access_token;
+                },
+                ExtractJwt.fromAuthHeaderAsBearerToken(),
+            ]),
             secretOrKey: config.getOrThrow<string>("JWT_SECRET", { infer: true }),
             ignoreExpiration: false,
-
         });
     }
 

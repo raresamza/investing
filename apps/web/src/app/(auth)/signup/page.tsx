@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { toast } from "sonner"
 import { signup } from "@/api/auth.api"
 
 const validationSchema = Yup.object({
@@ -40,12 +41,17 @@ export default function SignupPage() {
       setIsLoading(true)
       try {
         console.log("Submitting values:", values)
-        let data = await signup(values)
+        const data = await signup(values)
+        toast.success(data.message || "Signup successful! Please verify your email.")
         console.log("Signup Success")
       } catch (error: any) {
-        console.error("Signup error status:", error?.response?.status);
-        console.error("Signup error data:", error?.response?.data);
-        console.error("Signup error message:", error?.message);
+        console.error("Signup error:", error);
+        const errorData = error?.response?.data
+        const errorMessage = Array.isArray(errorData?.message)
+          ? errorData.message.join(", ")
+          : errorData?.message || "Signup failed"
+
+        toast.error(errorMessage)
       } finally {
         setIsLoading(false)
       }

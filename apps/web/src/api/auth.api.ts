@@ -9,10 +9,15 @@ export async function signup(dto: SignUpDto) {
 }
 
 export async function login(dto: LoginDto) {
-    console.log(dto);
-    const response = await axiosInstance.post("/auth/login", dto);
-    console.log(response.data);
-    return response.data;
+    console.log("Login API Call with DTO:", dto);
+    try {
+        const response = await axiosInstance.post("/auth/login", dto);
+        console.log("Login API Success Response:", response.data);
+        return response.data;
+    } catch (error: any) {
+        console.error("Login API Error Response:", error.response?.data);
+        throw error;
+    }
 }
 
 export async function verifyEmail(token: string) {

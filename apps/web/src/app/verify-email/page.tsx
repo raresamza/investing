@@ -110,7 +110,7 @@ export default function VerifyEmailPage() {
 
                     <div className="text-center text-sm">
                         {/* <span className="text-gray-500">Need a new link? </span> */}
-                        <Button className="" variant="link" onClick={() => router.push("/resend-email")}> Need a new link? </Button>
+                        <Button variant="link" onClick={() => router.push("/resend-email")}> Need a new link? </Button>
                     </div>
                 </CardContent>
             </Card>

@@ -1,6 +1,5 @@
 "use client"
 
-
 import { login } from "@/api/auth.api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +9,7 @@ import { useFormik } from "formik"
 import Link from "next/link"
 import { useState } from "react"
 import * as Yup from "yup"
+import { toast } from "sonner"
 
 
 const validationSchema = Yup.object({
@@ -23,6 +23,7 @@ const validationSchema = Yup.object({
 
 export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const formik = useFormik({
         initialValues: {
@@ -32,12 +33,27 @@ export default function LoginPage() {
         validationSchema: validationSchema,
         onSubmit: async (values) => {
             setIsLoading(true)
+            setError(null)
             try {
                 console.log("Submitting values:", values)
-                let data = await login(values)
+                const data = await login(values)
+                toast.success("Login successful!")
                 console.log("Login Success")
-            } catch (error) {
-                console.error("Login error:", error)
+            } catch (error: any) {
+                console.error("Login page error caught:", error?.response?.data || error)
+                const errorData = error?.response?.data
+
+                let errorMessage = "Login failed"
+                if (errorData?.message) {
+                    errorMessage = Array.isArray(errorData.message)
+                        ? errorData.message.join(", ")
+                        : typeof errorData.message === 'string'
+                            ? errorData.message
+                            : JSON.stringify(errorData.message)
+                }
+
+                setError(errorMessage)
+                toast.error(errorMessage)
             } finally {
                 setIsLoading(false)
             }
@@ -91,6 +107,11 @@ export default function LoginPage() {
                                 <div className="text-sm font-medium text-red-500">{formik.errors.password}</div>
                             ) : null}
                         </div>
+                        {error && (
+                            <div className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-600 border border-red-100 italic">
+                                {error}
+                            </div>
+                        )}
                         <Button
                             type="submit"
                             className="w-full h-11 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-all shadow-sm font-medium text-base mt-2"

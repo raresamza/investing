@@ -53,5 +53,43 @@ model Portfolio {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  investments   Investment[]
+  transactions  Transaction[]
+}
+
+model Investment {
+  id              String   @id @default(uuid())
+  portfolioId     String
+  symbol          String
+  name            String
+  shares          Float
+  avgCost         Float
+  currentValue    Float
+  totalInvested   Float
+  pnl             Float    @default(0)
+  pnlPercentage   Float    @default(0)
+  color           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  portfolio       Portfolio     @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+
+  @@unique([portfolioId, symbol])
+}
+
+model Transaction {
+  id              String   @id @default(uuid())
+  portfolioId     String
+  investmentId    String
+  type            String   // "BUY" or "SELL"
+  quantity        Float
+  pricePerShare   Float
+  totalAmount     Float
+  transactionDate DateTime
+  createdAt       DateTime @default(now())
+
+  portfolio   Portfolio   @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  investment  Investment  @relation(fields: [investmentId], references: [id], onDelete: Cascade)
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 
@@ -10,7 +10,7 @@ import { verifyEmail, resendVerificationEmail } from "@/api/auth.api"
 
 type Status = "idle" | "loading" | "success" | "error"
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -115,5 +115,17 @@ export default function VerifyEmailPage() {
                 </CardContent>
             </Card>
         </div>
+    )
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center bg-gray-50/50">
+                <div className="text-gray-600">Loading...</div>
+            </div>
+        }>
+            <VerifyEmailContent />
+        </Suspense>
     )
 }
